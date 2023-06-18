@@ -1,13 +1,11 @@
-import {promises as Fs } from "node:fs";
 import { Layout } from "./Layout.js";
-import { Image } from "./Image.js";
 
 /**
  * Class that manages construction of a set of Layouts from a set of
  * images.
  */
 class Collage {
-  
+
   /**
    * Process all images from the source directory.
    * @param {Rect} bounds size of layout
@@ -20,7 +18,7 @@ class Collage {
      * @member {Rect}
      */
     this.bounds = bounds;
-    /** 
+    /**
      * X and Y minimums
      * @member {Rect}
      */

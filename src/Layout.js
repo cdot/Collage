@@ -148,7 +148,7 @@ class Layout extends Rect {
       promise = promise
       .then(() => console.debug(`Compositing ${comf} from ${this}`))
       .then(() => space.image.scale_in_place())
-      .then(() => new Promise(async (resolve, reject) => {
+      .then(() => new Promise((resolve, reject) => {
         //console.debug(`\tadd ${space.image.basename} at ${space.centred}`);
         Gm(comf)
         .composite(space.image.path)

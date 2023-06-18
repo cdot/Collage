@@ -1,8 +1,83 @@
 {
+  "name": "@cdot/Collage",
+  "description": "Image composition",
+  "version": "0.0.1",
+  "license": "MIT",
   "type": "module",
+  "author": {
+    "name": "Crawford Currie",
+    "url": "https://github.com/cdot"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cdot/Collage"
+  },
+  "bin": {
+    "collage": "./bin/collage.js"
+  },
   "dependencies": {
     "gm": "^1.25.0",
     "posix-getopt": "^1.2.1",
     "tmp-promise": "^3.0.3"
+  },
+  "scripts": {
+    "lint": "eslint src -f unix"
+  },
+  "eslintConfig": {
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "sourceType": "module",
+      "ecmaVersion": 2022
+    },
+    "env": {
+      "shared-node-browser": true,
+      "jquery": true,
+      "es2021": true
+    },
+    "plugins": [
+      "import"
+    ],
+    "rules": {
+      "camelcase": 0,
+      "curly": 0,
+      "dot-notation": 1,
+      "import/no-unresolved": "error",
+      "import/named": "error",
+      "import/namespace": "error",
+      "import/default": "error",
+      "import/export": "error",
+      "import/no-named-as-default": "warn",
+      "import/no-named-as-default-member": "warn",
+      "import/no-duplicates": "warn",
+      "import/first": 0,
+      "new-cap": 0,
+      "no-alert": 0,
+      "no-console": 0,
+      "no-debugger": 0,
+      "no-eval": 0,
+      "no-fallthrough": 0,
+      "no-global-assign": 0,
+      "no-loop-func": 1,
+      "no-mixed-spaces-and-tabs": 0,
+      "no-new": 0,
+      "no-prototype-builtins": 0,
+      "no-redeclare": [
+        "error",
+        {
+          "builtinGlobals": false
+        }
+      ],
+      "no-trailing-spaces": 1,
+      "no-underscore-dangle": 0,
+      "no-unused-vars": 1,
+      "no-useless-escape": 1,
+      "no-use-before-define": 0,
+      "quotes": 0,
+      "strict": 0
+    }
+  },
+  "devDependencies": {
+    "eslint": "^8.43.0",
+    "eslint-plugin-import": "^2.27.5"
   }
 }

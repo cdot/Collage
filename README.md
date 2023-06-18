@@ -1,6 +1,13 @@
 # Collage
 Create screen background images by compositing a number of variable-sized smaller images to minimise empty space i.e. given a fixed-size target area create composite images by combining smaller images without overlapping.
 
+## Usage
+
+Given a directory if images "srcdir" and a target directory "destdir",
+
+
+## Algorithm
+
 The algorithm used is derived from Richard E. Korf's paper: Optimal Rectangle Packing: Initial Results with modifications to permit overlapping candidate areas to make better use of the variable aspect ratios of input images.
 
 Given a set of input Images, and a set of target Layouts, determine if the image fits into an available space on one of the Layouts and if not, create a new Layout.

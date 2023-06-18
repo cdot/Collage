@@ -6,7 +6,7 @@ import { Rect } from "./Rect.js";
 class Space extends Rect {
 
   static count = 0;
-  
+
   /**
    * @param {Layout} layout the layout the space is in.
    * Construct using (x, y, w, h) or (Rect) or (x, y, Rect)
