@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "dependencies": {
+    "gm": "^1.25.0",
+    "posix-getopt": "^1.2.1",
+    "tmp-promise": "^3.0.3"
+  }
+}
