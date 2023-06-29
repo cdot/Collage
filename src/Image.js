@@ -1,3 +1,6 @@
+/*Copyright (C) 2023 Crawford Currie https://github.com/cdot
+  License MIT. See README.md at the root of this distribution for full copyright
+  and license information.*/
 import { promises as Fs } from "fs";
 import Gm from "gm";
 import { Rect } from "./Rect.js";

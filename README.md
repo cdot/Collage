@@ -1,10 +1,15 @@
 # Collage
 Create screen background images by compositing a number of variable-sized smaller images to minimise empty space i.e. given a fixed-size target area create composite images by combining smaller images without overlapping.
 
+Also included is a command that generate and install a GNOME background
+control file that will rotate a set of screen backgrounds randomly.
+
 ## Usage
 
-Given a directory if images "srcdir" and a target directory "destdir",
+`node bin/collage.js` wiull tell you how to use the image compositor.
 
+`node bin/gnome_rotate_wall.js` will tell you how to generate and install
+the rotating wallpapers.
 
 ## Algorithm
 
