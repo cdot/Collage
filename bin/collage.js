@@ -21,14 +21,14 @@ const DESCRIPTION = [
   "<out> - path to output directory (must exist)",
   "\nOPTIONS",
   "\t-a, --area - size of the output areas, default is 1920x1080",
-  "\t-o, --overlap - maximum allowable image overlap, default is 20x20",
   "\t-c, --cost - cost function, one of AXIS or AREA",
   "\t-d, --debug - print verbose debugging information",
+  "\t-o, --overlap - maximum allowable image overlap, default is 20x20",
   "\t-r, --recurse - recurse into directories below input directory"
 ];
 
 const go_parser = new getopt.BasicParser(
-  "a:(area)d:(debug)c:(cost)o:(overlap)", process.argv);
+  "a:(area)c:(cost)d:(debug)o:(overlap)r(recurse)", process.argv);
 
 const area = new Rect(1920, 1080);
 const overlap = new Rect(20, 20);
@@ -40,8 +40,7 @@ function usage(mess) {
   process.exit();
 }
 
-const options = {};
-let option, wh, cost_function = "AXIS";
+let option, wh, cost_function = "AXIS", recurse = false;
 console.debug = () => {};
 while ((option = go_parser.getopt())) {
   switch (option.option) {
@@ -68,22 +67,26 @@ while ((option = go_parser.getopt())) {
     if (!/^(AXIS|AREA)$/.test(cost_function))
       usage(`Bad cost function "${cost_function}"`);
     break;
+  case 'r':
+    recurse = true;
+    break;
   }
 }
 
-const p = go_parser.optind();
-if (p > process.argv.length - 2)
-	usage(`Missing arguments\n${process.argv.join(" ")}`);
+let p = go_parser.optind();
 
-const src = process.argv[p];
-const dest = process.argv[p + 1];
+const src = process.argv[p++];
+if (!src)
+	usage(`<in> not given\n${process.argv.join(" ")}`);
+const dest = process.argv[p++];
+if (!dest)
+	usage(`<out> not given\n${process.argv.join(" ")}`);
 
 let images = new Images();
-images.get_images(src)
+images.get_images(src, !recurse)
 .then(() => images.sort_by_area())
 .then(() => {
   let coll = new Collage(area, overlap, images);
   coll.plan_layouts(cost_function);
   return coll.compose_layouts(dest);
 });
-

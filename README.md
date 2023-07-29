@@ -6,7 +6,7 @@ control file that will rotate a set of screen backgrounds randomly.
 
 ## Usage
 
-`node bin/collage.js` wiull tell you how to use the image compositor.
+`node bin/collage.js` will tell you how to use the image compositor.
 
 `node bin/gnome_rotate_wall.js` will tell you how to generate and install
 the rotating wallpapers.
