@@ -46,15 +46,15 @@ class Collage {
 
     this.layouts = [];
     for (const image of this.images) {
-      console.debug(`Placing "${image}"`);
-      if (image.scale_to_fit(this.bounds) !== 1)
-        console.debug(`\tscaled ${image.geometry}`);
+      console.debug(`Planning "${image}"`);
+      const scaled = image.fit_into(this.bounds);
+      console.debug(`\tscaled ${scaled.geometry}`);
       let best_space, cheapest = Number.MAX_SAFE_INTEGER;
       for (const layout of this.layouts) {
         for (const space of layout.spaces) {
-          if (space.image)
+          if (space.lock)
             continue;
-          let fit = space.image_fits(image);
+          let fit = space.fits(scaled);
           if (fit) {
             let cost;
             switch (algorithm) {
@@ -79,7 +79,10 @@ class Collage {
         best_space = layout.spaces[0];
         this.layouts.push(layout);
       }
-      best_space.place_image(image, this.minr);
+      // Split the space to accomodate the scaled image
+      best_space.split(scaled);
+      // and lock the image to it
+      best_space.lock = image;
     }
   }
 

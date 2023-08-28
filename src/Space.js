@@ -2,197 +2,392 @@
   License MIT. See README.md at the root of this distribution for full copyright
   and license information.*/
 
+import { Dimensions } from "./Dimensions.js";
 import { Rect } from "./Rect.js";
+
+const CASES = [ "TL", "TR", "BL", "BR" ];
 
 /**
  * A Space is a subdivision of a Layout.
  */
 class Space extends Rect {
 
-  static count = 0;
+  static next_space = 0;
 
   /**
    * @param {Layout} layout the layout the space is in.
    * Construct using (x, y, w, h) or (Rect) or (x, y, Rect)
    */
-  constructor(layout, x, y, w, h) {
+  constructor(layout, x, y, w, h, id) {
     super(x, y, w, h);
+
     /**
      * Layout this space belongs to
      * @member {Layout}
      */
     this.layout = layout;
+
     /**
-     *  Image locked to this space
-     * @member {Image?}
-    this.image = undefined;
+     * Dimensions locked to this space
+     * @member {Dimensions?}
+     */
+    this.lock = undefined;
+
     /**
      * Spaces in this layout to destroy if this space is locked.
      * @member {Space[]}
      */
-    this.kills = [];
+    this.overlaps = [];
 
-    this.id = Space.count++;
+    /**
+     * ID for debugging
+     * @member {number}
+     */
+    this.id = id || Space.next_space++;
   }
 
   /**
-   * Add a space that must be destroyed when this space has an image placed
-   * in it.
-   * @param {Space} space the space to kill
+   * Add a space that must be destroyed when this space has an image
+   * placed in it.
+   * @param {Space} space the space that it overlaps
+   * @private
    */
-  add_kill(space) {
-    this.kills.push(space);
+  add_overlap(space) {
+    this.overlaps.push(space);
   }
 
   /**
-   * Remove a single kill from the kill list. Does NOT remove this space
-   * from the kill's kill list.
+   * Remove a single overlap from the overlap list. Does NOT remove
+   * this space from the overlap's overlap list.
    * @param {Space} space the space to remove
+   * @return {boolean} true if the overlaps was removed;
+   * @private
    */
-  remove_kill(space) {
-    const i = this.kills.indexOf(space);
+  remove_overlap(space) {
+    const i = this.overlaps.indexOf(space);
     if (i >= 0) {
-      this.kills.splice(i, 1);
+      this.overlaps.splice(i, 1);
+      return true;
     }
+    return false;
   }
 
   /**
-   * Remove all kills from the kill list, removing this space from
-   * each kill's kill list (if it's there)
+   * Remove all overlaps from the overlap list, removing this space
+   * from each overlap's overlap list (if it's there)
    */
-  unlink_kills() {
-    for (const kill of this.kills)
-      kill.remove_kill(this);
-    this.kills = [];
+  unlink_overlaps() {
+    for (const overlap of this.overlaps)
+      overlap.remove_overlap(this);
+    this.overlaps = [];
   }
 
   /**
-   * Generate a string representation for dubugging
+   * Generate a string representation for debugging
    * @return {String} a string describing the image
    */
   toString() {
-    const im = this.image ? ` ${this.image}` : "";
-    const kill = this.kills.length === 0 ? "" :
-          "/"+this.kills.map(k => k.id).join(",")+"/";
-    return `[Space ${this.id} ${this.geometry}${im}${kill}]`;
+    const im = this.lock ? ` ${this.lock}` : "";
+    const overlap = (!this.overlaps || this.overlaps.length === 0) ? "" :
+          "/"+this.overlaps.map(k => k.id).join(",")+"/";
+    return `[Space ${this.id} ${this.x},${this.y}:${this.geometry}${im}${overlap}]`;
   }
 
   /**
-   * Determine if the image fits into the available space. There's some flex;
-   * slightly oversized images are acceptable.
-   * @param {Image} image the image to fit
-   * @return {Rect} Rect defining unused area, or undefined if the image
-   * doesn't fit in the space
+   * Determine how well that fits into the this. There's some flex;
+   * slightly oversized images are acceptable. The origin of that is
+   * ignored.
+   * @param {Dimensions} that the rect to fit
+   * @return {Dimensions} Dimensions of the unused area, or undefined
+   * if the image doesn't fit in the space
    */
-  image_fits(image) {
-    const rem_x = this.w - image.w;
-    const rem_y = this.h - image.h;
-    if (rem_x < -this.layout.minr.w || rem_y < -this.layout.minr.h)
+  fits(that) {
+    const rem = new Dimensions(this.w - that.w, this.h - that.h);
+    if (rem.w < -this.layout.minr.w || rem.h < -this.layout.minr.h)
       // Doesn't fit
       return undefined;
-    return new Rect(0, 0, rem_x, rem_y);
+    return rem;
   }
 
   /**
-   * Get the offset of the image that will centre it in the space
-   * @return {String} "+X+Y"
-   */
-  get centred() {
-    const offx = this.x + (this.w - this.image.w) / 2;
-    const offy = this.y + (this.h - this.image.h) / 2;
-    return `+${offx}+${offy}`;
-  }
-
-  /**
-   * Place an image into the space. The image must fit. The Space
-   * will be resized to the image and any extra space will be used
-   * to create new spaces to the right and below. The new spaces may
-   * overlap each other but will not overlap the image.
+   * Place an image in the top left corner of the space and create spaces
+   * for the rest of the area.
+   * '''
+   * +-------+----+   +-------+----+  +--------+---+
+   * | image | XL |   | image | XS |  | image | XS |
+   * +-------+    |   +-------+----+  +-------+----+
+   * | YS    |    |   | YL         |  | YS    | C  |
+   * +-------+----+   +------------+  +-------+----+
+   * '''
    * @param {Image} image the image to place
+   * @param {Dimensions} rem the remaining width and height after the image
+   * is placed
+   * @return {Object} object containing created Spaces in XL, YL, XS
+   * YS, C.
+   * @private
    */
-  place_image(image) {
-    const rem = this.image_fits(image);
+  split_TL(image, rem) {
+    let res = {};
 
+    if (rem.w >= this.layout.minr.w) {
+      res.XL = new Space(
+        this.layout, this.x + image.w, this.y, rem.w, this.h);
+
+      if (rem.h >= this.layout.minr.h) {
+        res.XS = new Space(
+          this.layout, this.x + image.w, this.y, rem.w, image.h);
+
+        res.YS = new Space(
+          this.layout, this.x, this.y + image.h, image.w, rem.h);
+
+        res.C = new Space(
+          this.layout, this.x + image.w, this.y + image.h, rem);
+      }
+    }
+
+    if (rem.h >= this.layout.minr.h)
+      res.YL = new Space(
+        this.layout, this.x, this.y + image.h, this.w, rem.h);
+
+    return res;
+  }
+
+  /**
+   * Place an image in the top right corner of the space and create spaces
+   * for the rest of the area.
+   * '''
+   * +----+-------+   +----+-------+  +----+-------+
+   * | XL | image |   | XS | image |  | XS | image |
+   * |    +-------+   +----+-------+  +----+-------+
+   * |    | YS    |   | YL         |  | C  | YS    |
+   * +----+-------+   +------------+  +----+-------+
+   * '''
+   * @param {Image} image the image to place
+   * @param {Dimensions} rem the remaining width and height after the image
+   * is placed
+   * @return {Object} object containing created Spaces in XL, YL, XS
+   * YS, C.
+   * @private
+   */
+  split_TR(image, rem) {
+    const res = {};
+
+    if (rem.w >= this.layout.minr.w) {
+      res.XL = new Space(
+        this.layout, this.x, this.y, rem.w, this.h);
+
+      if (rem.h >= this.layout.minr.h) {
+        res.XS = new Space(
+          this.layout, this.x, this.y, rem.w, image.h);
+
+        res.YS = new Space(
+          this.layout, this.x + rem.w, this.y + image.h, image.w, rem.h);
+
+        res.C = new Space(
+          this.layout, this.x, this.y + image.h, rem);
+      }
+    }
+
+    if (rem.h >= this.layout.minr.h)
+      res.YL = new Space(
+        this.layout, this.x, this.y + image.h, this.w, rem.h);
+
+    this.x += rem.w;
+
+    return res;
+  }
+
+  /**
+   * Place an image in the bottom left corner of the space and create spaces
+   * for the rest of the area.
+   * '''
+   * +-------+----+   +------------+  +-------+----+
+   * | YS    | XL |   | YL         |  | YS    | C  |
+   * +-------+    |   +-------+----+  +-------+----+
+   * | image |    |   | image | XS |  | image | XS |
+   * +-------+----+   +------------+  +-------+----+
+   * '''
+   * @param {Image} image the image to place
+   * @param {Dimensions} rem the remaining width and height after the image
+   * is placed
+   * @return {Object} object containing created Spaces in XL, YL, XS
+   * YS, C.
+   * @private
+   */
+  split_BL(image, rem) {
+    const res = {};
+
+    if (rem.w >= this.layout.minr.w) {
+      res.XL = new Space(
+        this.layout, this.x + image.w, this.y, rem.w, this.h);
+
+      if (rem.h >= this.layout.minr.h) {
+        res.XS = new Space(
+          this.layout, this.x + image.w, this.y + rem.h, rem.w, image.h);
+
+        res.YS = new Space(
+          this.layout, this.x, this.y, image.w, rem.h);
+
+        res.C = new Space(
+          this.layout, this.x + image.w, this.y, rem);
+      }
+    }
+
+    if (rem.h >= this.layout.minr.h)
+      res.YL = new Space(
+        this.layout, this.x, this.y, this.w, rem.h);
+
+    this.y += rem.h;
+
+    return res;
+  }
+
+  /**
+   * Place an image in the bottom right corner of the space and create
+   * spaces for the rest of the area.
+   * '''
+   * +-----+-------+   +------------+  +----+-------+
+   * |  XL | YS    |   | YL         |  | C  | YS    |
+   * |     +-------+   +----+-------+  +----+-------+
+   * |     | image |   | XS | image |  | XS | image |
+   * +-----+-------+   +------------+  +----+-------+
+   * '''
+   * @param {Image} image the image to place
+   * @param {Dimensions} rem the remaining width and height after the image
+   * is placed
+   * @return {Object} object containing created Spaces in XL, YL, XS
+   * YS, C.
+   * @private
+   */
+  split_BR(image, rem) {
+    const res = {};
+
+    if (rem.w >= this.layout.minr.w) {
+      res.XL = new Space(
+        this.layout, this.x, this.y, rem.w, this.h);
+
+      if (rem.h >= this.layout.minr.h) {
+        res.XS = new Space(
+          this.layout, this.x, this.y + rem.h, rem.w, image.h);
+
+        res.C = new Space(
+          this.layout, this.x, this.y, rem);
+      }
+    }
+
+    if (rem.h >= this.layout.minr.h) {
+      res.YL = new Space(
+        this.layout, this.x, this.y, this.w, rem.h);
+
+      if (rem.w >= this.layout.minr.w)
+        res.YS = new Space(
+          this.layout, this.x + rem.w, this.y, image.w, rem.h);
+    }
+    this.x += rem.w;
+    this.y += rem.h;
+
+    return res;
+  }
+
+  /**
+   * Place an area into the space. The area must fit. The area will
+   * be attached to the space in one of the corners and the Space will
+   * be be repositioned and resized to wrap the area. Any extra space
+   * will be used to create new spaces from the unused areas.
+   * @param {Dimensions} that the area to place
+   * @param {String?} where optional indicator of how to split the space.
+   * Must be one of "TL", "TR", "BL" or "BR" to indicate the desired corner.
+   */
+  split(that, where) {
+    const rem = this.fits(that);
     if (!rem)
-      throw new Error("Image doesn't fit");
+      throw new Error(`${that} doesn't fit in ${this}`);
 
-    console.debug(`place ${image} into ${this.layout.name} ${this}`);
+    console.debug(`place ${that} into ${this}`);
 
-    // Kill the linked overlapping spaces, if they are there
+    // Kill linked overlapping spaces
     const murder = [];
-    for (const deadspace of this.kills) {
-      if (!deadspace.image)
+    for (const deadspace of this.overlaps) {
+      if (!deadspace.lock)
         murder.push(deadspace);
     }
-    this.kills = [];
+    this.overlaps = [];
 
     for (const victim of murder)
-        this.layout.remove_space(victim);
+      this.layout.remove_space(victim);
 
     // Split down the space to retain excess. This is done by creating
-    // overlapping spaces in the two dimensions and recording the overlaps
-    // so when a spec if subsequently used, the overlaps can be removed.
-    let corner, tall;
-
-    //                 rem.w
-    //       +-------+------+   +-------+-------+  +-------+--------+
-    //       | image | tall |   | image | short |  | image | short  |
-    //       +-------+      |   +-------+-------+  +-------+--------+
-    // rem.h | thin  |      |   | fat           |  | thin  | corner |
-    //       +-------+------+   +---------------+  +-------+--------+
-    if (rem.w >= this.layout.minr.w) {
-      tall = new Space(
-        this.layout, this.x + image.w, this.y, rem.w, this.h);
-      this.layout.add_space(tall, "XL");
-
-      if (rem.h > this.layout.minr.h) {
-        const short = new Space(
-          this.layout, this.x + image.w, this.y, rem.w, image.h);
-        this.layout.add_space(short, "XS");
-
-        tall.add_kill(short);
-        short.add_kill(tall);
-
-        corner = new Space(
-          this.layout, this.x + image.w, this.y + image.h, rem);
-        this.layout.add_space(corner, "C");
-
-        tall.add_kill(corner);
-        corner.add_kill(tall);
-      }
+    // overlapping spaces in the two dimensions and recording the
+    // overlaps so when a Space so created has an image subsequently
+    // placed in it, the overlaps can be removed.
+    if (!where)
+      where = CASES[Math.floor(CASES.length * Math.random())];
+    console.debug(`\tsplit ${where}`);
+    let res;
+    switch (where) {
+    case "TL": res = this.split_TL(that, rem); break;
+    case "TR": res = this.split_TR(that, rem); break;
+    case "BL": res = this.split_BL(that, rem); break;
+    case "BR": res = this.split_BR(that, rem); break;
     }
 
-    if (rem.h > this.layout.minr.h) {
-      const fat = new Space(
-        this.layout, this.x, this.y + image.h, this.w, rem.h);
-      this.layout.add_space(fat, "YL");
-
-      if (rem.w > this.layout.minr.w) {
-        const thin = new Space(
-          this.layout, this.x, this.y + image.h, image.w, rem.h);
-        this.layout.add_space(thin, "YS");
-
-        fat.add_kill(thin);
-        thin.add_kill(fat);
-      }
-
-      if (corner) {
-        fat.add_kill(corner);
-        corner.add_kill(fat);
-      }
-
-      if (tall) {
-        tall.add_kill(fat);
-        fat.add_kill(tall);
-      }
+    if (res.XL) {
+      this.w = that.w;
+      if (res.YL)
+        res.XL.add_overlap(res.YL);
+      if (res.XS)
+        res.XL.add_overlap(res.XS);
+      if (res.C)
+        res.XL.add_overlap(res.C);
     }
 
-    // Note that we don't remove this space from the layout, we just mark it
-    // as occupied
-    this.image = image;
-    console.debug(`Resize ${this} ${image.w}x${image.h}`);
-    this.w = image.w;
-    this.h = image.h;
+    if (res.YL) {
+      this.h = that.h;
+      if (res.XL)
+        res.YL.add_overlap(res.XL);
+      if (res.YS)
+        res.YL.add_overlap(res.YS);
+      if (res.C)
+        res.YL.add_overlap(res.C);
+    }
+
+    if (res.XS) {
+      if (res.XL)
+        res.XS.add_overlap(res.XL);
+    }
+
+    if (res.YS) {
+      if (res.YL)
+        res.YS.add_overlap(res.YL);
+    }
+
+    if (res.C) {
+      if (res.XL)
+        res.C.add_overlap(res.XL);
+      if (res.YL)
+        res.C.add_overlap(res.YL);
+    }
+
+    if (res.XL) {
+      res.XL.id += `${where}XL`;
+      this.layout.add_space(res.XL);
+    }
+    if (res.YL) {
+      res.YL.id = `${where}YL`;
+      this.layout.add_space(res.YL);
+    }
+    if (res.XS) {
+      res.XS.id += `${where}XS`;
+      this.layout.add_space(res.XS);
+    }
+    if (res.YS) {
+      res.YS.id = `${where}YS`;
+      this.layout.add_space(res.YS);
+    }
+    if (res.C) {
+      res.C.id += `${where}C`;
+      this.layout.add_space(res.C);
+    }
   }
 }
 

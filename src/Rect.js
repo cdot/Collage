@@ -2,15 +2,20 @@
   License MIT. See README.md at the root of this distribution for full copyright
   and license information.*/
 
+import { Dimensions } from "./Dimensions.js";
+
 /**
- * Rectangle
+ * Rectangle. This is a Dimensions with an origin (x, y) that gives
+ * the top-left corner.
  */
-class Rect {
+class Rect extends Dimensions {
 
   /**
-   * Construct using (w, h) or (x, y, w, h) or (x, y, Rect) or (Rect)
+   * Construct using (w, h) or (x, y, w, h) or (x, y, Dimension)
+   * or (Rect) or (Dimension)
    */
   constructor(x, y, w, h) {
+    super();
     if (x instanceof Rect) {
       if (typeof y !== "undefined" || typeof w !== "undefined"
           || typeof h !== "undefined")
@@ -19,7 +24,14 @@ class Rect {
       this.y = x.y;
       this.w = x.w;
       this.h = x.h;
-    } else if (w instanceof Rect) {
+    } else if (x instanceof Dimensions) {
+      if (typeof y !== "undefined" || typeof w !== "undefined"
+          || typeof h !== "undefined")
+        throw new Error("Bad params +${x}+${y} ${w}x${h}");
+      this.x = this.y = 0;
+      this.w = x.w;
+      this.h = x.h;
+    } else if (w instanceof Dimensions) {
       if (typeof x !== "number" || typeof y !== "number"
           || typeof h !== "undefined")
         throw new Error("Bad params +${x}+${y} ${w}x${h}");
@@ -45,49 +57,48 @@ class Rect {
   }
 
   /**
-   * Get a geometry string for the rect
+   * Get an ImageMagick geometry string for the rect
+   * @return {string} "WxH+X+Y" where W, H, X and Y are integers. If
+   * X and Y are both zero, the + clause is omitted
    */
   get geometry() {
-    return `${this.w}x${this.h}` +
-    ((this.x > 0 || this.y > 0) ? `+${this.x}+${this.y}` : "");
+    return super.geometry +
+    ((this.x > 0 || this.y > 0) ? `+${Math.floor(this.x)}+${Math.floor(this.y)}` : "");
   }
 
   /**
-   * Get the area of the rectangle
+   * Check if this contains the point.
+   * @param {number} x coordinate
+   * @param {number} y coordinate
+   * @return {Boolean} true if it is contained
    */
-  get area() {
-    return this.w * this.h;
+  contains_point(x, y) {
+    return (this.x <= x && x < this.x + this.w
+            && this.y <= y && y < this.y + this.w);
   }
 
   /**
-   * Get the aspect ratio of the rectangle (height/width)
-   */
-  get aspect_ratio() {
-    if (this.w === 0)
-      throw new Error(`Can't get aspect ratio of ${this}`);
-    return this.h / this.w;
-  }
-
-  /**
-   * Check if this rect contains that rect
+   * Check if this wholly contains (or is identical to) that.
    * @param {Rect} that that rect
    * @return {Boolean}
    */
   contains(that) {
-    return !(this.x > that.x + that.w
-        || this.x + this.w <= that.x
-        || this.y > that.y + that.w
-        || this.y + this.w <= that.x);
+    if (!(that instanceof Rect))
+      throw new Error("Can only contains a Rect in a Rect");
+    return this.x <= that.x && that.x < this.x + this.w
+    && this.y <= that.y && that.y < this.y + this.h
+    && that.x + that.w <= this.x + this.w
+    && that.y + that.h <= this.y + this.h;
   }
 
   /**
-   * Check if an edge of this rect aligns with an edge of that rect.
-   * Returns LEFT if that is to the left of this
+   * Check if an edge of this aligns exactly with an edge of that. This
+   * is used to determine if two rects with coincident edges can be merged.
    * @param {Rect} that that rect
-   * @return {String?} LEFT, RIGHT, TOP, BOTTOM or undefined if they
+   * @return {String?} "LEFT", "RIGHT", "TOP", "BOTTOM" or undefined if they
    * don't align.
    */
-  aligns(that) {
+  mergeable(that) {
     if (that.y === this.y && that.h === this.h) {
       // Left or right
       if (this.x === that.x + that.w) return "LEFT";
@@ -98,6 +109,21 @@ class Rect {
       if (this.y + this.h == that.y) return "BOTTOM";
     }
     return undefined;
+  }
+
+  /**
+   * Calculate the offset that will centre that in this. Only the
+   * width and height of that are used, the origin is ignored.
+   * @param {Rect} that
+   * @return {String} An ImageMagick geometry string giving the required
+   * offset "+X+Y" where X and Y are integers
+   */
+  centre_offset(that) {
+    if (!(that instanceof Rect))
+      throw new Error("Can only centre a Rect in a Rect");
+    const offx = this.x + (this.w - that.w) / 2;
+    const offy = this.y + (this.h - that.h) / 2;
+    return `+${Math.floor(offx)}+${Math.floor(offy)}`;
   }
 }
 

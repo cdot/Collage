@@ -28,7 +28,7 @@ const DESCRIPTION = [
 ];
 
 const go_parser = new getopt.BasicParser(
-  "a:(area)c:(cost)d:(debug)o:(overlap)r(recurse)", process.argv);
+  "a:(area)c:(cost)d(debug)o:(overlap)r(recurse)", process.argv);
 
 const area = new Rect(1920, 1080);
 const overlap = new Rect(20, 20);
