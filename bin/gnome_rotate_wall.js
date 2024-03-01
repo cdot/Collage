@@ -3,8 +3,8 @@
   and license information.*/
 
 /**
- * Create a rotating wallpapers control file for gsettings
- * Scans a nominated directory (and optionally subdirectories) for images
+ * Create a rotating wallpapers control file for gsettings.
+ * Scans a nominated directory (and optionally subdirectories) for images.
  * ```
  * $ gsettings list-recursively org.gnome.desktop.background
  * ```
