@@ -112,65 +112,51 @@ while ((option = go_parser.getopt())) {
 }
 
 const t = new Date();
-const HEADER = `
-<background>
-  <starttime>
-    <year>${t.getFullYear()}</year>
-    <month>${t.getMonth()}</month>
-    <day>${t.getDate()}</day>
-    <hour>${t.getHours()}</hour>
-    <minute>${t.getMinutes()}</minute>
-    <second>${t.getSeconds()}</second>
-  </starttime>
-`;
-    
-const STATIC = `
-  <static>
-    <duration>${freeze_time}</duration>
-    <file>%FILE%</file>
-  </static>
-`;
-
-const TRANSITION = `
-  <transition>
-   <duration>${transition_time}</duration>
-   <from>%FROM%</from>
-   <to>%TO%</to>
-  </transition>
-`;
-
-const FOOTER = "</background>";
-
 const GSET = "gsettings set org.gnome.desktop.background";
+const images = new Images();
 
-let images = new Images();
 images.get_images(backgrounds, !recurse)
 .then(() => {
   console.debug(`${images.length} images found`);
   images.shuffle();
 
-  let control = HEADER;
+  const xml = [
+    "<background>",
+    "  <starttime>",
+    `    <year>${t.getFullYear()}</year>`,
+    `    <month>${t.getMonth()}</month>`,
+    `    <day>${t.getDate()}</day>`,
+    `    <hour>${t.getHours()}</hour>`,
+    `    <minute>${t.getMinutes()}</minute>`,
+    `    <second>${t.getSeconds()}</second>`,
+    "  </starttime>"];
   let first, last, image;
   for (image of images) {
     if (!first) first = image.path;
     if (last) {
-      control += TRANSITION
-      .replace(/%FROM%/g, last)
-      .replace(/%TO%/g, image.path);
+      xml.push("  <transition>",
+                   `   <duration>${transition_time}</duration>`,
+                   `   <from>${last}</from>`,
+                   `   <to>${image.path}</to>`,
+                   "  </transition>");
     }
-    control += STATIC
-    .replace(/%FILE%/g, image.path);
+    xml.push("  <static>",
+                 `    <duration>${freeze_time}</duration>`,
+                 `    <file>${image.path}</file>`,
+                 "  </static>");
     last = image.path;
   }
 
   if (last && first) {
-    control += TRANSITION
-    .replace(/%FROM%/g, last)
-    .replace(/%TO%/g, first);
+    xml.push("  <transition>",
+                 `   <duration>${transition_time}</duration>`,
+                 `   <from>${last}</from>`,
+                 `   <to>${first}</to>`,
+                 "  </transition>");
   }
-  control += FOOTER;
+  xml.push("</background>");
 
-  return Fs.writeFile(xml_file, control);
+  return Fs.writeFile(xml_file, xml.join("\n"));
 })
 .then(() => {
   console.debug(`${xml_file} generated`);
