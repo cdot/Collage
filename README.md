@@ -1,5 +1,7 @@
 # Collage
-Create screen background images by compositing a number of variable-sized smaller images to minimise empty space i.e. given a fixed-size target area create composite images by combining smaller images without overlapping.
+Create collages by compositing a number of variable-sized smaller images to minimise empty space i.e. given a fixed-size target area create composite images by combining smaller images without overlapping.
+
+The idea is to composit photos of varying sizes, resolutions, and aspect ratios, to create screen background or screen saver images.
 
 Also included is a command that generates and installs a GNOME background
 control file that will rotate a set of screen backgrounds randomly.

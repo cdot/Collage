@@ -23,6 +23,7 @@ const DESCRIPTION = [
   "\t-a, --area - size of the output areas, default is 1920x1080",
   "\t-c, --cost - cost function, one of AXIS or AREA",
   "\t-d, --debug - print verbose debugging information",
+  "\t-l, --label - add labels to images to indicate sources",
   "\t-o, --overlap - maximum allowable image overlap, default is 20x20",
   "\t-r, --recurse - recurse into directories below input directory"
 ];
@@ -40,13 +41,16 @@ function usage(mess) {
   process.exit();
 }
 
-let option, wh, cost_function = "AXIS", recurse = false;
+let option, wh, cost_function = "AXIS", recurse = false, label = false;
 console.debug = () => {};
 while ((option = go_parser.getopt())) {
   switch (option.option) {
   default: usage(`Unsupported option ${option.option}`);
   case 'd':
     console.debug = console.log;
+    break;
+  case 'l':
+    label = true;
     break;
   case 'a':
     if (!/^\d+x\d+$/i.test(option.optarg))
@@ -84,9 +88,10 @@ if (!dest)
 
 let images = new Images();
 images.get_images(src, !recurse)
-.then(() => images.sort_by_area())
+//.then(() => images.sort_by_area())
+.then(() => images.sort_by_width())
 .then(() => {
   let coll = new Collage(area, overlap, images);
   coll.plan_layouts(cost_function);
-  return coll.compose_layouts(dest);
+  return coll.compose_layouts(dest, label);
 });

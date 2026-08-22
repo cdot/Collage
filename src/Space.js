@@ -94,7 +94,7 @@ class Space extends Rect {
   }
 
   /**
-   * Determine how well that fits into the this. There's some flex;
+   * Determine how well "that" fits into this Space. There's some flex;
    * slightly oversized images are acceptable. The origin of that is
    * ignored.
    * @param {Dimensions} that the rect to fit
@@ -303,7 +303,7 @@ class Space extends Rect {
     if (!rem)
       throw new Error(`${that} doesn't fit in ${this}`);
 
-    console.debug(`place ${that} into ${this}`);
+    //console.debug(`place ${that} into ${this}`);
 
     // Kill linked overlapping spaces
     const murder = [];
@@ -322,7 +322,7 @@ class Space extends Rect {
     // placed in it, the overlaps can be removed.
     if (!where)
       where = CASES[Math.floor(CASES.length * Math.random())];
-    console.debug(`\tsplit ${where}`);
+    //console.debug(`\tsplit ${where}`);
     let res;
     switch (where) {
     case "TL": res = this.split_TL(that, rem); break;

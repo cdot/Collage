@@ -3,6 +3,10 @@
   and license information.*/
 
 class Dimensions {
+
+  /**
+   * Construct using (w, h) or (Dimension) or ()
+   */
   constructor(w, h) {
     if (w instanceof Dimensions) {
       this.w = w.w;
@@ -16,12 +20,13 @@ class Dimensions {
       this.w = this.h = 0;
     }
   }
+
   /**
    * Generate a string representation for debugging
    * @return {String} a string describing the rect
    */
   toString() {
-    return this.geometry;
+    return `<${this.geometry}>`;
   }
 
   /**
@@ -37,7 +42,7 @@ class Dimensions {
    * @return {number} the area w * h
    */
   get area() {
-    const res = Math.abs(this.w) * Math.abs(this.h);
+    const res = Math.abs(this.w * this.h);
     return (this.w < 0 || this.h < 0) ? -res : res;
   }
 

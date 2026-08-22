@@ -125,6 +125,10 @@ class Rect extends Dimensions {
     const offy = this.y + (this.h - that.h) / 2;
     return `+${Math.floor(offx)}+${Math.floor(offy)}`;
   }
+
+  toString() {
+    return `[${this.x},${this.y}${super.toString()}]`;
+  }
 }
 
 export { Rect };

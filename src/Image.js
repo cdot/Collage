@@ -75,20 +75,22 @@ class Image extends Rect {
 
   /**
    * Promise that resolves to an image that will fit in the given
-   * dimensions. If a scaled copy is needed, it is created as a temporary
+   * dimensions. The image is scaled if necessary and written to a temporary
    * file that will be destroyed when the process exits.
    * @param {Dimensions} size bounds required for the image
-   * @return {Promise} Promise resolves to this or the copy Image
+   * @param {string} label set to generate a text label on the image
+   * indicating it's source (debug)
+   * @return {Promise} Promise resolves to the scaled image Image
    */
-  scaled(size) {
+  scaled(size, label) {
     const dim = this.fit_into(size);
+    const lbl = `${label} ${this.basename} ${this.geometry}`;
 
     return Tmp.tmpName({ postfix: ".png" })
     .then(tmpname => new Promise((resolve, reject) => {
-      Gm(this.path)
-      .geometry(dim.geometry)
-//      .drawText(0, dim.h / 2, `${this.basename} ${this.geometry}`) // DEBUG
-      .write(tmpname, e => {
+      const gm = Gm(this.path).geometry(dim.geometry);
+      if (label) gm.drawText(dim.w / 10, dim.h / 2, lbl);
+      gm.write(tmpname, e => {
         if (e)
           reject(e);
         else {

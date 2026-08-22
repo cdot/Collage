@@ -46,9 +46,9 @@ class Collage {
 
     this.layouts = [];
     for (const image of this.images) {
-      console.debug(`Planning "${image}"`);
+      //console.debug(`Planning "${image}"`);
       const scaled = image.fit_into(this.bounds);
-      console.debug(`\tscaled ${scaled.geometry}`);
+      //console.debug(`\tscaled ${scaled.geometry}`);
       let best_space, cheapest = Number.MAX_SAFE_INTEGER;
       for (const layout of this.layouts) {
         for (const space of layout.spaces) {
@@ -74,7 +74,7 @@ class Collage {
       }
       if (!best_space) {
         // Create a new layout and put the image there
-        console.debug(`Create new layout for ${image.toString()}`);
+        console.debug(`Create new layout${this.layouts.length} for ${image.toString()}`);
         const layout = new Layout(this.bounds, this.minr);
         best_space = layout.spaces[0];
         this.layouts.push(layout);
@@ -90,15 +90,19 @@ class Collage {
    * Construct new images from the layouts that contain more than one
    * locked space.
    * @param {String} destdir destination directory for images
+   * @param {boolean} label true to generate text labels on images
+   * indicating their source (debug)
    * @return {Promise} Promise that resolves when all compositions are done
    */
-  compose_layouts(destdir) {
-    const promises = [];
+  compose_layouts(destdir, label) {
+    let promise = Promise.resolve();
     for (const lo of this.layouts) {
-      if (lo.simplify() > 0)
-        promises.push(lo.construct_image(destdir));
+      if (lo.simplify() > 0) {
+        //console.debug("Push", lo.name);
+        promise = promise.then(() => lo.construct_image(destdir, label));
+      }
     }
-    return Promise.all(promises);
+    return promise;
   }
 }
 

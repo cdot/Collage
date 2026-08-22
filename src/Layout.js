@@ -2,6 +2,7 @@
   License MIT. See README.md at the root of this distribution for full copyright
   and license information.*/
 import Gm from "gm";
+import { promises as Fs } from "fs";
 import { Dimensions } from "./Dimensions.js";
 import { Space } from "./Space.js";
 
@@ -327,7 +328,7 @@ class Layout extends Dimensions {
    * @param {Space} space space to add
    */
   add_space(space) {
-    console.debug(`Add ${space.id} ${space.toString()} to ${this.name}`);
+    //console.debug(`Add ${space.id} ${space.toString()} to ${this.name}`);
     this.spaces.push(space);
   }
 
@@ -337,7 +338,7 @@ class Layout extends Dimensions {
    * @param {Space} space space to remove
    */
   remove_space(space) {
-    console.debug(`\tRemove overlap ${space.toString()} from ${this.name}`);
+    //console.debug(`\tRemove overlap ${space.toString()} from ${this.name}`);
     space.unlink_overlaps();
     const i = this.spaces.indexOf(space);
     if (i < 0)
@@ -353,7 +354,7 @@ class Layout extends Dimensions {
    * @return the number of spaces remaining
    */
   simplify(filter_empty) {
-    console.debug(`Simplifying ${this.name}...`);
+    //console.debug(`Simplifying ${this.name}...`);
     // Extend spaces into adjacent empty spaces that share an edge
     let merged = true;
     while (merged) {
@@ -367,27 +368,27 @@ class Layout extends Dimensions {
           if (j === i || spj.lock) continue;
           switch (spi.mergeable(spj)) {
           case "LEFT":
-            console.debug(`\tMerge left ${spj} into ${spi}`);
+            //console.debug(`\tMerge left ${spj} into ${spi}`);
             spi.x = spj.x;
             spi.w += spj.w;
             this.remove_space(spj);
             folded = true;
             break;
           case "RIGHT":
-            console.debug(`\tMerge right ${spj} into ${spi}`);
+            //console.debug(`\tMerge right ${spj} into ${spi}`);
             spi.w += spj.w;
             this.remove_space(spj);
             folded = true;
             break;
           case "TOP":
-            console.debug(`\tMerge top ${spj} into ${spi}`);
+            //console.debug(`\tMerge top ${spj} into ${spi}`);
             spi.y = spj.y;
             spi.h += spj.h;
             this.remove_space(spj);
             folded = true;
             break;
           case "BOTTOM":
-            console.debug(`\tMerge bottom ${spj} into ${spi}`);
+            //console.debug(`\tMerge bottom ${spj} into ${spi}`);
             spi.h += spj.h;
             this.remove_space(spj);
             folded = true;
@@ -404,11 +405,11 @@ class Layout extends Dimensions {
     if (filter_empty) {
       const before = this.spaces.length;
       this.spaces = this.spaces.filter(sp => {
-        if (!sp.lock) console.debug(`Filtering ${sp}\n`);
+        //if (!sp.lock) console.debug(`Filtering ${sp}\n`);
         return sp.lock;
       });
-      if (this.spaces.length !== before)
-        console.debug(`Filtered ${before - this.spaces.length} empty spaces`);
+      //if (this.spaces.length !== before)
+      //  console.debug(`Filtered ${before - this.spaces.length} empty spaces`);
     }
     return this.spaces.length;
   }
@@ -416,34 +417,44 @@ class Layout extends Dimensions {
   /**
    * Create an image built from the occupied spaces in the layout.
    * @param {String} destdir destination directory for layouts
+   * @param {boolean} label true to generate a text label on the image
+   * indicating it's source (debug)
    * @return {Promise} Promise that resolves when the image has been
    * composed.
    */
-  construct_image(destdir) {
+  construct_image(destdir, label) {
     const comf = `${destdir}/${this.name}.png`;
 
     // Create an initial blank image for the layout
     let promise = new Promise((resolve, reject) => {
       const bg = `#${COLOURS[this.id % COLOURS.length]}`;
-      Gm(this.w, this.h, bg)
-      .drawText(0, 0, this.name)
-      .write(comf, e => {
+      const gm = Gm(this.w, this.h, bg);
+      if (label)
+        gm.drawText(0, 0, this.name);
+      gm.write(comf, e => {
         if (e)
           reject(e);
-        else
+        else {
+          console.debug(`Compositing ${comf}`);
           resolve();
+        }
       });
     });
 
+    
     // Composite the individual spaces, scaling the images into
     // the target spaces
+    const contents = [];
     for (const space of this.spaces) {
       if (!space.lock) continue;
       promise = promise
-      .then(() => console.debug(`Compositing ${comf}`))
-      .then(() => space.lock.scaled(space))
+      //.then(() => console.debug(`...+ ${space.id}`))
+      .then(() => space.lock.scaled(space, label ? this.name : undefined))
       .then(image => new Promise((resolve, reject) => {
-        //console.debug(`\tadd ${space.lock.basename} at ${space.centre_offset(space.lock)}`);
+        const desc =
+              `${space.lock.basename} at ${space.centre_offset(space.lock)}`;
+        console.debug(`\tadd ${desc}`);
+        contents.push(desc);
         Gm(comf)
         .composite(image.path)
         .geometry(space.centre_offset(image))
@@ -456,7 +467,9 @@ class Layout extends Dimensions {
       }));
     }
 
-    return promise;
+    return promise
+    .then(() => 
+      Fs.writeFile(`${destdir}/${this.name}.contents`, contents.join("\n")));
   }
 }
 

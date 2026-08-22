@@ -45,12 +45,23 @@ class Images extends Array {
   }
 
   /**
-   * Sort the images by reducing area in place.
+   * Sort the images by area.
    */
   sort_by_area() {
     this.sort((im1, im2) => {
       if (im1.area < im2.area) return 1;
       if (im1.area > im2.area) return -1;
+      return 0;
+    });
+  }
+
+  /**
+   * Sort the images by width.
+   */
+  sort_by_width() {
+    this.sort((im1, im2) => {
+      if (im1.w < im2.w) return 1;
+      if (im1.w > im2.w) return -1;
       return 0;
     });
   }
