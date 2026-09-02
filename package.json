@@ -16,15 +16,15 @@
     "collage": "./bin/collage.js"
   },
   "dependencies": {
-    "gm": "^1.25.0",
+    "gm": "^1.25.1",
     "posix-getopt": "^1.2.1",
     "tmp-promise": "^3.0.3"
   },
   "devDependencies": {
-    "c8": "^10.1.2",
-    "chai": "^5.1.2",
-    "eslint": "^9.15.0",
-    "eslint-plugin-import": "^2.31.0"
+    "c8": "^12.0.0",
+    "chai": "^6.2.2",
+    "eslint": "^10.9.1",
+    "eslint-plugin-import": "^2.32.0"
   },
   "scripts": {
     "coverage": "NODE_ENV=test c8 --reporter=html --reporter text npm run test",
