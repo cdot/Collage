@@ -112,18 +112,18 @@ class Rect extends Dimensions {
   }
 
   /**
-   * Calculate the offset that will centre that in this. Only the
-   * width and height of that are used, the origin is ignored.
+   * Calculate the offset that will centre "that" in "this". Only the
+   * width and height of "that" are used, the origin is ignored.
    * @param {Rect} that
-   * @return {String} An ImageMagick geometry string giving the required
-   * offset "+X+Y" where X and Y are integers
+   * @return {object} Object {x:, y:} giving the required offset
+   * where x and y are integers
    */
   centre_offset(that) {
     if (!(that instanceof Rect))
       throw new Error("Can only centre a Rect in a Rect");
     const offx = this.x + (this.w - that.w) / 2;
     const offy = this.y + (this.h - that.h) / 2;
-    return `+${Math.floor(offx)}+${Math.floor(offy)}`;
+    return { x: Math.floor(offx), y: Math.floor(offy) };
   }
 
   toString() {

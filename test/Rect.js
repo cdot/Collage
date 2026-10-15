@@ -97,9 +97,9 @@ describe("Rect", () => {
   });
 
   it("centre_offset", () => {
-    let a = new Rect(10, 10, 100, 100);
-    assert.equal(a.centre_offset(a), "+10+10");
-    let b = new Rect(10, 10);
-    assert.equal(a.centre_offset(b), "+55+55");
+    let a = new Rect(10, 12, 100, 100);
+    assert.deepEqual(a.centre_offset(a), {x:10,y:12});
+    let b = new Rect(10, 11);
+    assert.deepEqual(a.centre_offset(b), {x:55,y:56});
   });
 });

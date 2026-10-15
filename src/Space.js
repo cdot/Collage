@@ -12,6 +12,9 @@ const CASES = [ "TL", "TR", "BL", "BR" ];
  */
 class Space extends Rect {
 
+  /**
+   * @private
+   */
   static next_space = 0;
 
   /**

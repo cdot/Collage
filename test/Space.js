@@ -65,9 +65,8 @@ describe("Space", () => {
   it("place TL", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(3, 4);
-    s.place(area, "TL");
-
-    assert.equal(s.lock, area);
+    s.split(area, "TL");
+    assert(!s.lock);
     assert.equal(s.geometry, "3x4");
     check_overlaps([
       { id: "TLXL", x: 3, y: 0, w:7, h:10, overlaps: ["TLXS", "TLYL", "TLC"] },
@@ -81,9 +80,8 @@ describe("Space", () => {
   it("place TL no YL", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(5, 9);
-    s.place(area, "TL");
+    s.split(area, "TL");
 
-    assert.equal(s.lock, area);
     assert.equal(s.geometry, "5x10");
     check_overlaps([
       { id: "TLXL", x: 5, y: 0, w:5, h:10, overlaps: [] }
@@ -93,9 +91,8 @@ describe("Space", () => {
   it("place TL no XL", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(10, 5);
-    s.place(area, "TL");
+    s.split(area, "TL");
 
-    assert.equal(s.lock, area);
     assert.equal(s.geometry, "10x5");
     check_overlaps([
       { id: "TLYL", x: 0, y: 5, w: 10, h: 5, overlaps: [] }
@@ -105,9 +102,8 @@ describe("Space", () => {
   it("place TL no XL no YL", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(9, 9);
-    s.place(area, "TL");
+    s.split(area, "TL");
 
-    assert.equal(s.lock, area);
     assert.equal(s.geometry, "10x10");
     check_overlaps([]);
   });
@@ -115,9 +111,8 @@ describe("Space", () => {
   it("place TR", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(3, 4);
-    s.place(area, "TR");
+    s.split(area, "TR");
 
-    assert.equal(s.lock, area);
     assert.equal(s.geometry, "3x4+7+0");
     check_overlaps([
       { id: "TRXL", x: 0, y: 0, w: 7, h: 10, overlaps: ["TRC","TRYL","TRXS"] },
@@ -131,9 +126,8 @@ describe("Space", () => {
   it("place BL", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(3, 4);
-    s.place(area, "BL");
+    s.split(area, "BL");
 
-    assert.equal(s.lock, area);
     assert.equal(s.geometry, "3x4+0+6");
     check_overlaps([
       { id: "BLXL", x: 3, y: 0, w: 7, h: 10, overlaps: ["BLC","BLYL","BLXS"] },
@@ -143,15 +137,14 @@ describe("Space", () => {
       { id: "BLC", x: 3, y: 0, w: 7, h: 6, overlaps: ["BLXL", "BLYL"] }
     ]);
 
-    console.log(s.toString());
+    //console.log(s.toString());
   });
 
   it("place BR", () => {
     const s = new Space(layout, 0, 0, 10, 10);
     const area = new Dimensions(3, 4);
-    s.place(area, "BR");
+    s.split(area, "BR");
 
-    assert.equal(s.lock, area);
     assert.equal(s.geometry, "3x4+7+6");
     check_overlaps([
       { id: "BRXL", x: 0, y: 0, w: 7, h: 10, overlaps: ["BRXS","BRC","BRYL"] },

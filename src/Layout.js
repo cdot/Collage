@@ -1,10 +1,12 @@
 /*Copyright (C) 2023 Crawford Currie https://github.com/cdot
   License MIT. See README.md at the root of this distribution for full copyright
   and license information.*/
-import Gm from "gm";
 import { promises as Fs } from "fs";
+import Tmp from "tmp-promise";
+
 import { Dimensions } from "./Dimensions.js";
 import { Space } from "./Space.js";
+import { FF } from "./FF.js";
 
 const COLOURS = [
   "000000", // Black
@@ -274,9 +276,10 @@ const COLOURS = [
 ];
 
 /**
- * A Layout is a complete background. A layout contains a list of
- * spaces. Each space may be an empty space, or an image space.
- * Empty spaces can overlap each other, image spaces cannot.
+ * A Layout is a complete background (a wallpaper, if that makes it
+ * easier). A layout contains a list of rectilinear spaces. Each
+ * space may be an empty space, or an image space. Empty spaces can
+ * overlap each other, image spaces cannot.
  */
 class Layout extends Dimensions {
 
@@ -334,7 +337,7 @@ class Layout extends Dimensions {
 
   /**
    * Remove a space from this layout. This only happens when a space that
-   * overlaps it is used.
+   * overlaps it has an image assigned to it.
    * @param {Space} space space to remove
    */
   remove_space(space) {
@@ -415,61 +418,54 @@ class Layout extends Dimensions {
   }
 
   /**
-   * Create an image built from the occupied spaces in the layout.
+   * Compose an image built from the spaces in the layout that have an
+   * assigned image.
    * @param {String} destdir destination directory for layouts
-   * @param {boolean} label true to generate a text label on the image
-   * indicating it's source (debug)
    * @return {Promise} Promise that resolves when the image has been
    * composed.
    */
-  construct_image(destdir, label) {
+  construct_image(destdir) {
     const comf = `${destdir}/${this.name}.png`;
 
-    // Create an initial blank image for the layout
-    let promise = new Promise((resolve, reject) => {
-      const bg = `#${COLOURS[this.id % COLOURS.length]}`;
-      const gm = Gm(this.w, this.h, bg);
-      if (label)
-        gm.drawText(0, 0, this.name);
-      gm.write(comf, e => {
-        if (e)
-          reject(e);
-        else {
-          console.debug(`Compositing ${comf}`);
-          resolve();
-        }
-      });
-    });
+    console.debug(`Compositing ${comf}`);
 
-    
+    // Create an initial blank image for the layout
+    const bg = COLOURS[this.id % COLOURS.length];
+    let promise = FF.mpeg([
+      "-f", "lavfi",
+      "-i", `color=c=0x${bg}:s=${this.w}x${this.h}`,
+      "-frames:v", 1,
+      comf
+    ]);
+
     // Composite the individual spaces, scaling the images into
     // the target spaces
-    const contents = [];
     for (const space of this.spaces) {
       if (!space.lock) continue;
       promise = promise
       //.then(() => console.debug(`...+ ${space.id}`))
-      .then(() => space.lock.scaled(space, label ? this.name : undefined))
-      .then(image => new Promise((resolve, reject) => {
-        const desc =
-              `${space.lock.basename} at ${space.centre_offset(space.lock)}`;
+      .then(() => space.lock.scaled(space))
+      .then(image => {
+        const where = space.centre_offset(space.lock);
+        const desc = `${space.lock} at ${where.x},${where.y}`;
         console.debug(`\tadd ${desc}`);
-        contents.push(desc);
-        Gm(comf)
-        .composite(image.path)
-        .geometry(space.centre_offset(image))
-        .write(comf, e => {
-          if (e)
-            reject(e);
-          else
-            resolve();
+        const co = space.centre_offset(image);
+        return Tmp.tmpName({ postfix: ".png" })
+        .then(tmpname => {
+          return FF.mpeg([
+            "-i", comf,
+            "-i", image.path,
+            "-filter_complex", `overlay=x=${co.x}:y=${co.y}`,
+            "-frames:v", 1,
+            tmpname
+          ])
+          .then(() => Fs.cp(tmpname, comf));
+          //.then(() => console.debug(`added ${desc} to ${comf}`));
         });
-      }));
+      });
     }
 
-    return promise
-    .then(() => 
-      Fs.writeFile(`${destdir}/${this.name}.contents`, contents.join("\n")));
+    return promise;
   }
 }
 

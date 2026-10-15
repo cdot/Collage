@@ -90,16 +90,14 @@ class Collage {
    * Construct new images from the layouts that contain more than one
    * locked space.
    * @param {String} destdir destination directory for images
-   * @param {boolean} label true to generate text labels on images
-   * indicating their source (debug)
    * @return {Promise} Promise that resolves when all compositions are done
    */
-  compose_layouts(destdir, label) {
+  compose_layouts(destdir) {
     let promise = Promise.resolve();
     for (const lo of this.layouts) {
       if (lo.simplify() > 0) {
         //console.debug("Push", lo.name);
-        promise = promise.then(() => lo.construct_image(destdir, label));
+        promise = promise.then(() => lo.construct_image(destdir));
       }
     }
     return promise;

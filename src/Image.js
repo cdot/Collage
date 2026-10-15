@@ -2,10 +2,11 @@
   License MIT. See README.md at the root of this distribution for full copyright
   and license information.*/
 import { promises as Fs } from "fs";
-import Gm from "gm";
+import Tmp from "tmp-promise";
+
 import { Dimensions } from "./Dimensions.js";
 import { Rect } from "./Rect.js";
-import Tmp from "tmp-promise";
+import { FF } from "./FF.js";
 
 /**
  * Holder for an image. Holds references to the source path to the image
@@ -37,19 +38,15 @@ class Image extends Rect {
   init() {
     if (this.sz)
       return Promise.resolve();
-    return new Promise(
-      resolve => {
-        Gm(this.path)
-        .size((err, val) => {
-          if (err) throw new Error(err);
-          this.w = val.width; this.h = val.height;
-          resolve(this);
-        });
-      });
+    return FF.probe(this.path)
+    .then(info => {
+      this.w = info.streams[0].width; this.h = info.streams[0].height;
+      return this;
+    });
   }
 
   /**
-   * Generate a string representation for dubugging
+   * Generate a string representation for debugging
    * @return {String} a string describing the image
    */
   toString() {
@@ -78,26 +75,29 @@ class Image extends Rect {
    * dimensions. The image is scaled if necessary and written to a temporary
    * file that will be destroyed when the process exits.
    * @param {Dimensions} size bounds required for the image
-   * @param {string} label set to generate a text label on the image
-   * indicating it's source (debug)
    * @return {Promise} Promise resolves to the scaled image Image
    */
-  scaled(size, label) {
+  scaled(size) {
     const dim = this.fit_into(size);
-    const lbl = `${label} ${this.basename} ${this.geometry}`;
-
+    // aspect ratio is preserved, so if either w or h is the same as
+    // the space there's nothing to do
+    if (dim.h === size.lock.h || dim.w === size.lock.w) {
+      //console.debug("No scaling");
+      return this;
+    }
+    // Otherwise we have to scale the image
     return Tmp.tmpName({ postfix: ".png" })
     .then(tmpname => new Promise((resolve, reject) => {
-      const gm = Gm(this.path).geometry(dim.geometry);
-      if (label) gm.drawText(dim.w / 10, dim.h / 2, lbl);
-      gm.write(tmpname, e => {
-        if (e)
-          reject(e);
-        else {
-          const copy = new Image(tmpname);
-          copy.w = dim.w; copy.h = dim.h;
-          resolve(copy);
-        }
+      //console.debug("Scaling", dim.geometry);
+      FF.mpeg([
+        "-i", this.path,
+        "-vf", `scale=${dim.geometry}`,
+        tmpname
+      ])
+      .then(() => {
+        const copy = new Image(tmpname);
+        copy.w = dim.w; copy.h = dim.h;
+        resolve(copy);
       });
     }));
 	}

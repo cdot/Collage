@@ -57,8 +57,8 @@ class Dimensions {
   }
 
   /**
-   * Compute the Dimensions that will fit this into that while preserving
-   * the aspect ratio of this.
+   * Compute the Dimensions that will fit 'this' into 'that' while preserving
+   * the aspect ratio of 'this'.
    * @param {Dimensions} that limiting dimensions
    * @return {Dimensions} the largest dimensions with the same aspect
    * ratio as this that fits in that.
