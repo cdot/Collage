@@ -406,7 +406,7 @@ class Layout extends Dimensions {
       }
     }
     if (filter_empty) {
-      const before = this.spaces.length;
+      //const before = this.spaces.length;
       this.spaces = this.spaces.filter(sp => {
         //if (!sp.lock) console.debug(`Filtering ${sp}\n`);
         return sp.lock;

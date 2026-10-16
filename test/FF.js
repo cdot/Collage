@@ -1,10 +1,21 @@
 import { assert } from "chai";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { FF } from "../src/FF.js";
 
 describe("FF", () => {
 
+  const testf = `${__dirname}/test.jpg`,
+        scalef = `${__dirname}/_scale.png`,
+        blankf = `${__dirname}/_blank.png`,
+        mergef = `${__dirname}/_merge.png`;
+  
   it("ffprobe", () => {
-    return FF.probe("./test.jpg")
+    return FF.probe(testf)
     .then(d => {
       assert.equal(d.streams.length, 1);
       assert.equal(d.streams.length, 1);
@@ -17,10 +28,10 @@ describe("FF", () => {
   
   it("scales", () => {
     return FF.mpeg([
-      "-i", "./test.jpg",
+      "-i", testf,
       "-vf", "scale=960:540",
-      "./temporary.png"])
-    .then(() => FF.probe("./temporary.png"))
+      scalef])
+    .then(() => FF.probe(scalef))
     .then(d => {
       assert.equal(d.streams[0].width, 960);
       assert.equal(d.streams[0].height, 540);
@@ -32,8 +43,8 @@ describe("FF", () => {
       "-f", "lavfi",
       "-i", "color=c=black:s=1920x1080",
       "-frames:v", 1,
-      "./blank.png" ])
-    .then(() => FF.probe("./blank.png"))
+      blankf ])
+    .then(() => FF.probe(blankf))
     .then(d => {
       assert.equal(d.streams[0].width, 1920);
       assert.equal(d.streams[0].height, 1080);
@@ -43,11 +54,11 @@ describe("FF", () => {
   // If this fails, check you aren't using npx mocha --parallel
   it("combines", () => {
     return FF.mpeg([
-      "-i", "blank.png",
-      "-i", "temporary.png",
+      "-i", blankf,
+      "-i", scalef,
       "-filter_complex", "overlay=x=960:y=540",
       "-frames:v", 1,
-      "combined.png"
+      mergef
     ]);
   });
 });

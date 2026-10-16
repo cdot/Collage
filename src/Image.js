@@ -4,7 +4,6 @@
 import { promises as Fs } from "fs";
 import Tmp from "tmp-promise";
 
-import { Dimensions } from "./Dimensions.js";
 import { Rect } from "./Rect.js";
 import { FF } from "./FF.js";
 
@@ -87,9 +86,8 @@ class Image extends Rect {
     }
     // Otherwise we have to scale the image
     return Tmp.tmpName({ postfix: ".png" })
-    .then(tmpname => new Promise((resolve, reject) => {
-      //console.debug("Scaling", dim.geometry);
-      FF.mpeg([
+    .then(tmpname => {
+      return FF.mpeg([
         "-i", this.path,
         "-vf", `scale=${dim.geometry}`,
         tmpname
@@ -97,9 +95,9 @@ class Image extends Rect {
       .then(() => {
         const copy = new Image(tmpname);
         copy.w = dim.w; copy.h = dim.h;
-        resolve(copy);
+        return copy;
       });
-    }));
+    });
 	}
 }
 

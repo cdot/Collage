@@ -1,4 +1,3 @@
-import stream from "stream";
 import JSONStream from "JSONStream";
 import bl from 'bl';
 import { spawn } from "child_process";
